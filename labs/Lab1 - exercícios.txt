@@ -1,0 +1,229 @@
+--#Nome: Nilo Conrado Messias Alves Cangerana
+--#Numero USP: 9805362
+
+Exercício 2:
+--#Codigo corrigido de acordo com as especificações
+-- #1
+create table cidades(   --#Criação incorreta no exemplo. Na forma do exemplo, o unique gera uma chave secundária para cidade
+ id number,    --# e uma chave terciária para estado. Para se ter uma chave primária composta, é necessário indicar os 3 atributos juntos na criação da primária.
+ cidade varchar2(100),
+ estado char(2),
+ populacao number,
+ 
+ PRIMARY KEY (id, cidade, estado)
+);
+-- #2
+INSERT INTO CIDADES (ID, CIDADE, ESTADO, POPULACAO) VALUES (1, 'Rio Claro', 'SP', 250000);  --#as linhas de inserçao estão corretas.
+-- #3
+INSERT INTO CIDADES (id, cidade, estado, populacao) VALUES (2, 'Rio Claro', 'RJ', 250000); 
+-- #4
+DROP TABLE CIDADES; --#tabela é eliminada.
+-- #5
+create table cidades(       --#criaçao incorreta de chave primária composta. No código do exemplo uma chave secundária composta esta sendo criada.
+ id number ,                 --#É necessário criar a chave primária composta com os 3 atributos juntos.
+ cidade varchar2(100),
+ estado char(2),
+ populacao number,
+ 
+ CONSTRAINT PK_CIDADES PRIMARY KEY (id, cidade, estado)
+);
+-- #6
+INSERT INTO CIDADES (id, cidade, estado, populacao) VALUES (1, 'Rio Claro', 'SP', 250000); --# inserções e buscas na tabela está correta.
+-- #7
+INSERT INTO CIDADES (id, cidade, estado, populacao) VALUES (2, 'Rio Claro', 'RJ', 250000);
+-- #8
+SELECT * FROM CIDADES;
+-- #9
+DROP TABLE CIDADES; --#tabela é eliminada.
+
+--#-------------------------------------------------------------------------------------------------------------------
+-- #10
+create table cidades(           --#O exemplo da erro de compilação pois só pode haver uma chave primária. O código não saberia identificar qual é a chave.
+ cidade varchar2(100),
+ estado char(2),
+ populacao number,
+ 
+ PRIMARY KEY (cidade,estado)
+);
+-- #11
+create table cidades(       --#Erro pois ja existe uma tabela com o mesmo nome, é necessário deletar a anterior.
+ cidade varchar2(100),
+ estado char(2),
+ populacao number,
+ CONSTRAINT PK_CIDADES PRIMARY KEY (CIDADE, ESTADO)
+);
+-- #12
+INSERT INTO CIDADES (cidade, estado, populacao) VALUES ('Rio Claro', 'SP', 180000); --# inserções e buscas na tabela está correta.
+-- #13
+INSERT INTO CIDADES (cidade, estado, populacao) VALUES ('Rio Claro', 'RJ', 18000);
+
+-- #14
+SELECT * FROM CIDADES;
+--#----------------------------------------------------------------------------
+-- #15
+CREATE TABLE ALUNOS (           --#Erro na referencia da chave estrangeira cidade, que deve referenciar cidade e estado.
+	NUSP INT PRIMARY KEY,
+	NOME VARCHAR2(100),
+	CIDADE VARCHAR2(100),
+    estado char(2),
+	CONSTRAINT FK_CIDADE FOREIGN KEY (CIDADE,estado) REFERENCES CIDADES (CIDADE,estado)
+);
+
+DROP TABLE ALUNOS; --#tabela alunos é eliminada.
+------------------------------------------------------------------------------
+
+-- #16
+CREATE TABLE ALUNOS (   --#Erro pois cidade e estado devem ser referenciados juntos pela mesma foreign key
+	NUSP INT PRIMARY KEY,
+	NOME VARCHAR2(100),
+	CIDADE VARCHAR2(100),
+    ESTADO CHAR(2),
+	CONSTRAINT FK_CIDADE_EST FOREIGN KEY (CIDADE,ESTADO) REFERENCES CIDADES (CIDADE,ESTADO)
+);
+DROP TABLE ALUNOS; --#tabela alunos é eliminada.
+
+-- #17
+CREATE TABLE ALUNOS (           --#Os atributos de cidade e estado recebem valor nulo se sua referencia é deletada da tabela cidades.
+	NUSP INT PRIMARY KEY,
+	NOME VARCHAR(100),
+	CIDADE VARCHAR(100),
+	ESTADO CHAR(2),
+	CONSTRAINT FK_CIDADE FOREIGN KEY (CIDADE, ESTADO) REFERENCES CIDADES (CIDADE, ESTADO)
+            ON DELETE SET NULL
+);
+
+-- #18
+INSERT INTO ALUNOS (NUSP, NOME, CIDADE, ESTADO) VALUES (1, 'Ze', 'Rio Claro', 'SP');
+-- #19
+INSERT INTO ALUNOS (NUSP, NOME, CIDADE, ESTADO) VALUES (2, 'Ana', 'Araraquara', 'SP');  --#Erro, cidade não encontrada na tabela de cidades. Restriçao de integridade
+-- #20
+INSERT INTO ALUNOS (NUSP, NOME, CIDADE, ESTADO) VALUES (2, 'Ana', 'Rio Claro', 'RJ');   --#inserido pois a linha de cima não foi inserida. Porem o mesmo número usp não pode ser adicionado por ser chave primaria
+
+-- #21
+SELECT * FROM ALUNOS;
+
+
+
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Exercicio 3:
+
+CREATE TABLE TIMES (
+NOME VARCHAR2(20) PRIMARY KEY,
+ESTADO VARCHAR2(20),
+TIPO VARCHAR2(12) NOT NULL,
+SALDO_GOLS INTEGER,
+
+CHECK (UPPER(TIPO) IN ('AMADOR','PROFISSIONAL'))
+);
+
+CREATE TABLE JOGA (
+TIME1 VARCHAR2(20),
+TIME2 VARCHAR2(20),
+CLASSICO CHAR(1),
+
+CONSTRAINT PK_JOGA PRIMARY KEY (TIME1,TIME2),
+CONSTRAINT FK_TIME1 FOREIGN KEY (TIME1) REFERENCES TIMES(NOME) ON DELETE CASCADE,
+CONSTRAINT FK_TIME2 FOREIGN KEY (TIME2) REFERENCES TIMES(NOME) ON DELETE CASCADE,
+CHECK (UPPER(CLASSICO) IN ('0','1'))
+);
+
+CREATE TABLE PARTIDA (
+TIME1 VARCHAR2(20),
+TIME2 VARCHAR2(20),
+DATA_PARTIDA DATE,
+PLACAR VARCHAR2(3) DEFAULT '0X0',
+LOCAL_PARTIDA VARCHAR(20),
+
+CONSTRAINT PK_PARTIDA PRIMARY KEY (TIME1, TIME2, DATA_PARTIDA),
+CONSTRAINT FK_PARTIDA FOREIGN KEY (TIME1, TIME2) REFERENCES JOGA (TIME1,TIME2) ON DELETE CASCADE,
+CHECK (REGEXP_LIKE(PLACAR,'[0-9]X[0-9]'))
+);
+
+CREATE TABLE JOGADOR (
+CPF VARCHAR2(14) PRIMARY KEY,
+RG VARCHAR2(12),
+NOME VARCHAR(30),
+DATA_NASC DATE,
+NATURALIDADE VARCHAR(20),
+TIME_JOGADOR VARCHAR(20) NOT NULL,
+
+CONSTRAINT FK_JOGADOR FOREIGN KEY (TIME_JOGADOR) REFERENCES TIMES(NOME) ON DELETE CASCADE,
+UNIQUE (RG, NOME)
+);
+
+CREATE TABLE POSICAO_JOGADOR (
+JOGADOR VARCHAR2(14),
+POSICAO VARCHAR2(20),
+
+CONSTRAINT PK_POSJOGADOR PRIMARY KEY (JOGADOR,POSICAO),
+CONSTRAINT FK_POSJOGADOR FOREIGN KEY (JOGADOR) REFERENCES JOGADOR (CPF) ON DELETE CASCADE
+);
+
+CREATE TABLE DIRETOR (
+TIME_DIR VARCHAR2(20),
+NOME VARCHAR2(30),
+
+CONSTRAINT PF_DIRETOR PRIMARY KEY (TIME_DIR,NOME),
+CONSTRAINT FK_DIRETOR FOREIGN KEY (TIME_DIR) REFERENCES TIMES(NOME) ON DELETE CASCADE
+);
+
+CREATE TABLE UNIFORME (
+TIME_UNIF VARCHAR2(20),
+TIPO VARCHAR2(10),
+COR_PRINCIPAL VARCHAR2(10),
+
+CHECK (UPPER(TIPO) IN ('TITULAR','AMADOR')),
+PRIMARY KEY (TIME_UNIF, TIPO),
+CONSTRAINT FK_UNIFORME FOREIGN KEY (TIME_UNIF) REFERENCES TIMES(NOME) ON DELETE CASCADE
+);
+
+--#EXEMPLOS
+INSERT INTO TIMES (NOME, ESTADO, TIPO, SALDO_GOLS) VALUES ('TIME A', 'SP', 'TESTANDO', 10);     --# TESTE DA RESTRICAO AMADOR/PROFISSIONAL = ERRO
+INSERT INTO TIMES (NOME, ESTADO, TIPO, SALDO_GOLS) VALUES ('TIME A', 'SP', 'AMADOR', 10);       --#INSERCAO CORRETA
+INSERT INTO TIMES (NOME, ESTADO, TIPO, SALDO_GOLS) VALUES ('TIME B', 'RJ', 'PROFISSIONAL', 10); --#INSERCAO CORRETA
+INSERT INTO TIMES (NOME, ESTADO, TIPO, SALDO_GOLS) VALUES ('TIME C', 'MG', 'PROFISSIONAL', 10); --#INSERCAO CORRETA
+
+INSERT INTO JOGA (TIME1, TIME2, CLASSICO) VALUES ('TIME X', 'TIME A', '1'); --# TESTE RESTRICAO DE CHAVE ESTRANGEIRA = ERRO
+INSERT INTO JOGA (TIME1, TIME2, CLASSICO) VALUES ('TIME A', 'TIME X', '1'); --# TESTE RESTRICAO DE CHAVE ESTRANGEIRA = ERRO
+
+INSERT INTO JOGA (TIME1, TIME2, CLASSICO) VALUES ('TIME B', 'TIME A', 'A'); --#TESTE BOOLEANO DE CLASSICO = ERRO
+
+INSERT INTO JOGA (TIME1, TIME2, CLASSICO) VALUES ('TIME B', 'TIME A', '0'); --#INSERCAO CORRETA
+INSERT INTO JOGA (TIME1, TIME2, CLASSICO) VALUES ('TIME A', 'TIME C', '1'); --#INSERCAO CORRETA
+
+INSERT INTO PARTIDA (TIME1, TIME2, DATA_PARTIDA, PLACAR, LOCAL_PARTIDA) VALUES ('TIME A', 'TIME C', TO_DATE('10/10/2010','dd/mm/yyyy'),'0XA','ESTADIO A'); --#TESTE DO REGEX = ERRO
+INSERT INTO PARTIDA (TIME1, TIME2, DATA_PARTIDA, PLACAR, LOCAL_PARTIDA) VALUES ('TIME A', 'TIME C', TO_DATE('10/10/2010','dd/mm/yyyy'),'0D2','ESTADIO A'); --#TESTE DO REGEX = ERRO
+INSERT INTO PARTIDA (TIME1, TIME2, DATA_PARTIDA, PLACAR, LOCAL_PARTIDA) VALUES ('TIME X', 'TIME C', TO_DATE('10/10/2010','dd/mm/yyyy'),'0X1','ESTADIO A'); --#TESTE DE CHAVE ESTRANGEIRA NAO EXISTENTE = ERRO
+INSERT INTO PARTIDA (TIME1, TIME2, DATA_PARTIDA, PLACAR, LOCAL_PARTIDA) VALUES ('TIME A', 'TIME C', TO_DATE('10/10/2010','dd/mm/yyyy'),'0X4','ESTADIO A'); --#INSERCAO CORRETA
+
+INSERT INTO JOGADOR (CPF, RG, NOME, DATA_NASC, NATURALIDADE, TIME_JOGADOR) VALUES ('123', '123123','JOGADOR A',TO_DATE('10/10/2000','dd/mm/yyyy'),'BR','TIME A');
+INSERT INTO JOGADOR (CPF, RG, NOME, DATA_NASC, NATURALIDADE, TIME_JOGADOR) VALUES ('456', '456456','JOGADOR B',TO_DATE('10/10/1990','dd/mm/yyyy'),'BR','TIME B');
+
+
+--# 3.2
+
+INSERT INTO JOGADOR (CPF, RG, NOME, DATA_NASC, NATURALIDADE, TIME_JOGADOR) VALUES ('123', '123123','JOGADOR A',TO_DATE('10/10/2000','dd/mm/yyyy'),'BR','TIME A');
+INSERT INTO JOGADOR (CPF, RG, NOME, DATA_NASC, NATURALIDADE, TIME_JOGADOR) VALUES ('456', '456456','JOGADOR B',TO_DATE('10/10/1990','dd/mm/yyyy'),'BR','TIME B');
+
+ALTER TABLE JOGADOR ADD ENDERECO VARCHAR(10);
+SELECT *FROM JOGADOR;   --# FOI ADICIONADA UMA COLUNA NAS TABELAS DE JOGADOR, E FOI ATRIBUIDO O VALOR NULL
+
+ALTER TABLE JOGADOR ADD NUMERO_DE_GOLS INTEGER DEFAULT (0);
+SELECT *FROM JOGADOR;	--# FOI ADICIONADA UMA COLUNA NAS TABELAS DE JOGADOR, E FOI ATRIBUIDO O VALOR 0 (DEFAULT)
+
+
+INSERT INTO DIRETOR (TIME_DIR, NOME) VALUES ('TIME A', 'A');
+INSERT INTO DIRETOR (TIME_DIR, NOME) VALUES ('TIME B', 'B');
+INSERT INTO DIRETOR (TIME_DIR, NOME) VALUES ('TIME C', 'A');
+INSERT INTO DIRETOR (TIME_DIR, NOME) VALUES ('TIME B', 'A');
+
+ALTER TABLE DIRETOR ADD CONSTRAINT NOME_A CHECK (REGEXP_LIKE(NOME,'^A'));	--# RESTRICAO DE PESSOAS COM NOME QUE CONTEM A LETRA A. A ADICAO DESSA RESTRICAO OCASIONOU UM ERRO DE COMPILAÇAO DIZENDO QUE A OPERACAO VIOLARIA
+SELECT *FROM DIRETOR;								--# ELEMENTOS QUE JA ESTAO NA TABELA. NAO FOI POSSIVEL VALIDA-LA
+
+INSERT INTO POSICAO_JOGADOR (JOGADOR, POSICAO) VALUES ('123', 'ATACANTE');
+INSERT INTO POSICAO_JOGADOR (JOGADOR, POSICAO) VALUES ('456', 'GOLEIRO');
+
+ALTER TABLE JOGADOR DROP COLUMN CPF;	--# A TABELA DE POSICAO_JOGADOR FICOU INTACTA PORÉM ELA NÃO REFERENCIA MAIS NADA, JÁ QUE O CPF MAIS A POSICAO ERA A CHAVE UNICA COMPOSTA. AGORA O VALOR DO CPF NÃO IMPORTA MAIS. A CHAVE ESTRANGEIRA FOI REMOVIDA, DEVIDO AO CASCADE
+
+
