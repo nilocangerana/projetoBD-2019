@@ -1,0 +1,314 @@
+CREATE TABLE PATROCINADOR(  --Criar tabela Patrocinador
+CNPJ CHAR(18),		    --Atributo do tipo char com espaço de 18 caracteres 
+NOME VARCHAR2(20),	    --Atributo Nome, utilizando o VarChar, pois é uma cadeia de caracteres que pode variar muito quanto ao tamanho
+CONSTRAINT PK_PATROCINADOR PRIMARY KEY(CNPJ), --Definicao de CNPJ como chave primária da tabela
+CONSTRAINT CK_CNPJ CHECK(REGEXP_LIKE(CNPJ, '[0-9]{2}\.[0-9]{3}\.[0-9]{3}\/[0-9]{4}\-[0-9]{2}')) -- CHECK utilizado para garantir que ao ser digitado o dado entrará
+); 												-- padronizado
+
+CREATE TABLE ESTANDE( --Criar tabela Estande
+NUMERACAO INT,	      --Variável int para enumerar as estandes
+AREA_DISPONIVEL NUMBER(5,2), --Tipo de dado Number usado para ter precisão(5 no caso) e escala(2)
+CONSTRAINT PK_NUMERACAO PRIMARY KEY(NUMERACAO) --Definicao da numeracao como chave primária
+);
+
+CREATE TABLE EMPRESA( --Criar tabela Empresa
+CNPJ CHAR(18) PRIMARY KEY, --Atributo CNPJ já definido como chave primária
+NOME VARCHAR2(20),
+DATA_FUNDACAO DATE, --Tipo de dado DATE usado para garantir uma insercao ja formatada com data e hora  
+LOCALIZACAO_SEDE VARCHAR2(20),
+CEO_ATUAL VARCHAR2(20),
+NUMERACAO INT,
+CONSTRAINT FK_EMPRESA_NUMERACAO FOREIGN KEY(NUMERACAO) --Definindo atributo NUMERACAO como chave estrangeira  
+REFERENCES ESTANDE(NUMERACAO)			       --chave estrangeira referencia a tabela Estande que possui numeracao como chave primária
+ON DELETE CASCADE,				       --delete em cascata, pois uma chave não pode deixar de existir e manter o estado da sua tupla
+CONSTRAINT SK_EMPRESA_NUMERACAO UNIQUE(NUMERACAO),     --Funcao UNIQUE usada para declarar numeracao como chave secundária e garantir sua unicicidade nas tuplas
+CONSTRAINT CK_CNPJ_EMPRESA CHECK(REGEXP_LIKE(CNPJ, '[0-9]{2}\.[0-9]{3}\.[0-9]{3}\/[0-9]{4}\-[0-9]{2}')) --Condição check padronizada para cnpj 
+);
+
+CREATE TABLE ESTUDIO(	--Criar tabela Estudio
+NOME VARCHAR2(20),
+DATA_FUNDACAO DATE,
+NUM_FUNCIONARIOS INT,
+LOCALIZACAO VARCHAR2(20),
+CNPJ CHAR(18),
+INDIE CHAR(1),		--Utilização do tipo de dado char com um caractere para criarmos uma variável booleana que varia entre 0[F] e 1[V]
+NUMERACAO INT,
+CHECK(INDIE IN ('0','1')), --Garantir que os únicos valores a serem digitados no atributo indie serão 0 ou 1
+CONSTRAINT PK_ESTUDIO PRIMARY KEY(NOME), --Definicao de nome como chave primaria
+CONSTRAINT FK_ESTUDIO_CNPJ FOREIGN KEY(CNPJ) --CNPJ como chave estrangeira
+REFERENCES EMPRESA(CNPJ) --referencia cnpj da tabela empresa
+ON DELETE SET NULL, --Delete set null, pois não é chave da tabela
+CONSTRAINT FK_ESTUDIO_NUMERACAO FOREIGN KEY(NUMERACAO) --NUMERACAO como chave estrangeira
+REFERENCES ESTANDE(NUMERACAO) -- referencia numeracao da tabela estande
+ON DELETE SET NULL --Delete set null, pois não é chave da tabela
+);
+
+CREATE TABLE JOGO( 	--Cria tabela jogo
+TITULO VARCHAR2(20),
+DATA_DE_LANCAMENTO DATE,
+PRECO NUMBER(5,2),
+DLC CHAR(1), --Booleano
+TEMPO_DE_TESTE INT,
+NOME VARCHAR(20),
+CONSTRAINT PK_JOGO PRIMARY KEY(TITULO), --Titulo como chave primaria
+CONSTRAINT FK_NOME FOREIGN KEY(NOME) --NOME como chave estrangeira
+REFERENCES ESTUDIO(NOME)	--referencia estudio
+ON DELETE SET NULL,		
+CHECK(DLC IN ('0','1'))		--condicao de checagem para o atributo booleano
+);
+
+CREATE TABLE FINANCIAMENTO(	--Cria tabela financiamento
+CNPJ CHAR(18),
+TITULO VARCHAR2(20),
+ANUNCIO VARCHAR2(20),
+MIDIA_DIGITAL VARCHAR2(50),
+MIDIA_FISICA VARCHAR2(50),
+CONSTRAINT PK_FINANCIAMENTO PRIMARY KEY(CNPJ, TITULO), --Definicao de chave primária dupla com CNPJ e TITULO
+CONSTRAINT FK_FINANCIAMENTO_CNPJ FOREIGN KEY(CNPJ)	--CNPJ definido como chave estrangeira
+REFERENCES PATROCINADOR(CNPJ)	--referenciando patrocinador
+ON DELETE CASCADE,		--Delete cascade: cnpj é chave
+CONSTRAINT FK_FINANCIAMENTO_TITULO FOREIGN KEY(TITULO)	--TITULO definido como chave estrangeira
+REFERENCES JOGO(TITULO)	--referencia jogo
+ON DELETE CASCADE	--Delete cascade: titulo é chave
+);
+
+CREATE TABLE PLATAFORMA( --Criar tabela Plataforma
+TITULO VARCHAR2(20),
+NOME_DA_PLATAFORMA VARCHAR2(20),
+CHECK(UPPER(NOME_DA_PLATAFORMA) IN ('NINTENDO_SWITCH', 'XBOX_ONE', 'PLAYSTATION_4', 'PC')), --Garantir que as plataformas do banco estejam no escopo do Evento
+CONSTRAINT PK_PLATAFORMA PRIMARY KEY(TITULO, NOME_DA_PLATAFORMA),			--TITULO e NOME_DA_PLATAFORMA definidos como chave primaria
+CONSTRAINT FK_PLATAFORMA FOREIGN KEY(TITULO)			--TITULO definido como chave estrangeira
+REFERENCES JOGO(TITULO)						--referencia jogo
+ON DELETE CASCADE
+);
+
+CREATE TABLE APRESENTACAO( --Cria tabela Apresentacao
+DATA_HORA_INICIO DATE,
+CATEGORIA VARCHAR2(20), --CATEGORIA é atributo usado para definir a generalização em PUBLICIDADE e PALESTRA
+LOCALIZACAO VARCHAR2(20),
+CNPJ CHAR(18) NOT NULL,  --CNPJ definido como NOT NULL
+CHECK(UPPER(CATEGORIA) IN ('PUBLICIDADE','PALESTRA')), --garantir que as generalizações inseridas serão apenas PUBLICIDADE e PALESTRA
+CONSTRAINT PK_APRESENTACAO PRIMARY KEY(DATA_HORA_INICIO), --DATA_HORA_INICIO definido como chave primária
+CONSTRAINT FK_APRESENTACAO_EMP FOREIGN KEY(CNPJ)	--CNPJ definido como chave estrangeira
+REFERENCES EMPRESA(CNPJ)	--referencia empresa
+ON DELETE CASCADE
+);
+
+CREATE TABLE PUBLICIDADE(  --Criar tabela publicidade
+DATA_HORA_INICIO DATE,
+FOCO VARCHAR2(20),
+APRESENTADOR VARCHAR2(20),
+CONSTRAINT PK_PUBLICIDADE PRIMARY KEY(DATA_HORA_INICIO), --DATA_HORA_INICIO definido como chave primária
+CONSTRAINT FK_PUBLICIDADE FOREIGN KEY(DATA_HORA_INICIO)	 --DATA_HORA_INICIO definido como chave estrangeira
+REFERENCES APRESENTACAO(DATA_HORA_INICIO)		 --referencia apresentacao
+ON DELETE CASCADE
+);
+
+CREATE TABLE PALESTRA( --Criar tabela Palestra
+DATA_HORA_INICIO DATE,
+TEMA VARCHAR2(20),
+PALESTRANTE VARCHAR2(20),
+CONSTRAINT PK_PALESTRA PRIMARY KEY(DATA_HORA_INICIO), --DATA_HORA_INICIO definido como chave primária
+CONSTRAINT FK_PALESTRA FOREIGN KEY(DATA_HORA_INICIO)  --DATA_HORA_INICIO definido como chave estrangeira
+REFERENCES APRESENTACAO(DATA_HORA_INICIO)	      --referencia apresentacao
+ON DELETE CASCADE
+);
+
+CREATE TABLE PUBLICO(	--Criar tabela Publico
+NUM_CRACHA INT,
+NOME VARCHAR2(20),
+CPF CHAR(14),
+CONSTRAINT CK_CPF_PUB CHECK(REGEXP_LIKE(CPF, '[0-9]{3}\.[0-9]{3}\.[0-9]{3}\-[0-9]{2}')), --CHECK para garantir o formato da insercao de CPF no tipo 000.000.000-00
+CONSTRAINT PK_PUBLICO PRIMARY KEY(NUM_CRACHA),		--NUM_CRACHA definido como chave primária
+CONSTRAINT SK_PUBLICO UNIQUE(CPF)			--CPF definido como chave secundária
+);
+
+CREATE TABLE ASSISTE_APRESENTACAO( --Criar tabela Assiste_Apresentacao
+NUM_CRACHA INT,
+DATA_HORA_INICIO DATE,
+CONSTRAINT PK_ASSISTE_APRESENTACAO PRIMARY KEY(NUM_CRACHA, DATA_HORA_INICIO), --NUM_CRACHA e DATA_HORA_INICIO definidos como cahve primária
+CONSTRAINT FK_ASSISTE_APRESENTACAO_CRACHA FOREIGN KEY(NUM_CRACHA)	--NUM_CRACHA e DATA_HORA_INICIO definidos como chave estrangeira na tabela
+REFERENCES PUBLICO(NUM_CRACHA)						--NUM_CRACHA referencia PUBLICO e DATA_HORA_INICIO referencia Apresentacao
+ON DELETE CASCADE,
+CONSTRAINT FK_ASSISTE_APRESENTACAO_INICIO FOREIGN KEY(DATA_HORA_INICIO)
+REFERENCES APRESENTACAO(DATA_HORA_INICIO)
+ON DELETE CASCADE
+);
+
+CREATE TABLE TESTA(
+NUM_CRACHA INT,
+TITULO VARCHAR2(20),
+TESTAJOGO CHAR(1), --Atributo booleano que nos retorna se o jogo foi testado ou não
+CONSTRAINT PK_TESTA PRIMARY KEY(NUM_CRACHA, TITULO), --NUM_CRACHA e TITULO definidos como chave primária
+CONSTRAINT FK_TESTA_CRACHA FOREIGN KEY(NUM_CRACHA) --NUM_CRACHA definido como chave estrangeira
+REFERENCES PUBLICO(NUM_CRACHA)	--referencia publico
+ON DELETE CASCADE,
+CONSTRAINT FK_TESTA_TITULO FOREIGN KEY(TITULO) --TITULO definido como chave estrangeira
+REFERENCES JOGO(TITULO) --referencia jogo
+ON DELETE CASCADE,
+CHECK(TESTAJOGO IN ('0','1')) --CHECK para garantir que a insercao no atributo booleano seja apenas ou 0 ou 1
+);
+
+CREATE TABLE ENTREVISTA( --Criar tabela Entrevista 
+DATA_HORA_INICIO DATE,
+LOCALIZACAO VARCHAR2(20),
+CONSTRAINT PK_ENTREVISTA PRIMARY KEY(DATA_HORA_INICIO) --DATA_HORA_INICIO definido como chave primária
+);
+
+CREATE TABLE PERSONALIDADE( --Criar tabela Personalidade
+NOME_ARTISTICO VARCHAR2(20),
+ESPECIALIDADE VARCHAR2(20),	--Atributo usado para a generalizacao em 3 tipos: CONTRACENISTA, ESCRITOR, VOICE_ACTOR
+DATA_HORA_INICIO DATE,
+CHECK(UPPER(ESPECIALIDADE) IN ('CONTRACENISTA','ESCRITOR', 'VOICE_ACTOR')), --Condicao check para garantir que as insercoes da generalizacao seram apenas as 3 listadas
+CONSTRAINT PK_PERSONALIDADE PRIMARY KEY(NOME_ARTISTICO), --NOME_ARTISTICO definido como chave primaria
+CONSTRAINT SK_PERSONALIDADE UNIQUE(DATA_HORA_INICIO),	--DATA_HORA_INICIO definido como chave secundária
+CONSTRAINT FK_PERSONALIDADE_INICIO FOREIGN KEY(DATA_HORA_INICIO) --DATA_HORA_INICIO definido como chave estrangeira
+REFERENCES ENTREVISTA(DATA_HORA_INICIO)			--referencia entrevista
+ON DELETE SET NULL
+);
+
+CREATE TABLE CONTRATO(	--Criar tabela Contrato
+TITULO VARCHAR2(20),
+NOME_ARTISTICO VARCHAR2(20),
+CODIGO INT,
+DATA_INICIO DATE,
+DATA_TERMINO DATE,
+DESCRICAO VARCHAR2(100),
+CONSTRAINT PK_CONTRATO PRIMARY KEY(TITULO, NOME_ARTISTICO), --NOME_ARTISTICO e TITULO definidos como chave primária
+CONSTRAINT FK_CONTRATO FOREIGN KEY(TITULO) --TITULO definido como chave estrangeira
+REFERENCES JOGO(TITULO) 	           --referencia jogo
+ON DELETE CASCADE,
+CONSTRAINT FK_CONTRATO_ARTISTA FOREIGN KEY(NOME_ARTISTICO)	--NOME_ARTISTICO definido como chave estrangeira
+REFERENCES PERSONALIDADE(NOME_ARTISTICO)	--referencia personalidade
+ON DELETE CASCADE,
+CONSTRAINT SK_CONTRATO UNIQUE(CODIGO) --CODIGO definido como chave secundária
+);
+
+CREATE TABLE VOICE_ACTOR( --Criar tabela Voice_Actor
+NOME_ARTISTICO VARCHAR2(20) PRIMARY KEY,	--NOME_ARTISTICO definido como chave primária
+TIMBRE_DA_VOZ VARCHAR2(20),
+CONSTRAINT FK_VACTOR FOREIGN KEY(NOME_ARTISTICO)  --NOME_ARTISTICO definido como chave estrangeira
+REFERENCES PERSONALIDADE(NOME_ARTISTICO)	 --referencia personalidade
+ON DELETE CASCADE
+);
+
+CREATE TABLE PAPEL_DESTAQUE_VOICEACTOR( --Criar tabela Papel_Destaque_VoiceActor
+NOME_ARTISTICO VARCHAR2(20),
+PAPEL VARCHAR2(20),
+CONSTRAINT PK_PAPEL_DESTAQUE PRIMARY KEY(NOME_ARTISTICO, PAPEL), --NOME_ARTISTICO e PAPEL definido como chave primária
+CONSTRAINT FK_PAPEL_DESTAQUE FOREIGN KEY(NOME_ARTISTICO) --NOME_ARTISTICO definido como chave estrangeira
+REFERENCES VOICE_ACTOR(NOME_ARTISTICO)			 --referencia Voice_Actor
+ON DELETE CASCADE
+);
+
+CREATE TABLE ESCRITOR( --Criar tabela Escritor
+NOME_ARTISTICO VARCHAR2(20) PRIMARY KEY, --NOME_ARTISTICO definido como chave primária
+GENERO_ESCRITA VARCHAR2(20),
+CONSTRAINT FK_ESCRITOR FOREIGN KEY(NOME_ARTISTICO) --NOME_ARTISTICO definido como chave estrangeira
+REFERENCES PERSONALIDADE(NOME_ARTISTICO)	   --referencia personalidade
+ON DELETE CASCADE
+);
+
+CREATE TABLE TRABALHO_DE_DESTAQUE( --Criar tabela Trabalho_De_Destaque
+NOME_ARTISTICO VARCHAR2(20),
+TRABALHO VARCHAR2(20),
+CONSTRAINT PK_TRABALHO_DE_DESTAQUE PRIMARY KEY(NOME_ARTISTICO, TRABALHO),	--NOME_ARTISTICO e TRABALHO definidos como chave primária
+CONSTRAINT FK_TRABALHO_DE_DESTAQUE FOREIGN KEY(NOME_ARTISTICO)			--NOME_ARTISTICO definido como chave estrangeira
+REFERENCES ESCRITOR(NOME_ARTISTICO)					--referencia escritor
+ON DELETE CASCADE
+);
+
+CREATE TABLE PAPEL_DESTAQUE_CONTRACENISTA( --Criar tabela Papel_Destaque_Contracenista
+NOME_ARTISTICO VARCHAR2(20),
+PAPEL VARCHAR2(20),
+CONSTRAINT PK_PAPEL_DESTAQUEATOR PRIMARY KEY(NOME_ARTISTICO, PAPEL),	--NOME_ARTISTICO e PAPEL definidos como chave primária
+CONSTRAINT FK_PAPEL_DESTAQUEATOR FOREIGN KEY(NOME_ARTISTICO)		--NOME_ARTISTICO definido como chave estrangeira
+REFERENCES PERSONALIDADE(NOME_ARTISTICO)				--referencia personalidade
+ON DELETE CASCADE
+);
+
+CREATE TABLE VERTENTES_ATUACAO( --Criar tabela Vertentes_Atuacao
+NOME_ARTISTICO VARCHAR2(20),
+VERTENTE VARCHAR2(20),
+CONSTRAINT PK_VERTENTES_ATUACAO PRIMARY KEY(NOME_ARTISTICO, VERTENTE), --NOME_ARTISTICO e VERTENTE definidos como chave primária
+CONSTRAINT FK_VERTENTES_ATUACAO FOREIGN KEY(NOME_ARTISTICO)	--NOME_ARTISTICO definido como chave estrangeira
+REFERENCES PERSONALIDADE(NOME_ARTISTICO)	--referencia personalidade
+ON DELETE CASCADE
+);
+
+CREATE TABLE DESENVOLVEDOR(  --Criar tabela Desenvolvedor
+CPF CHAR(14),
+NOME VARCHAR2(20),
+TELEFONE VARCHAR2(20),
+EMAIL VARCHAR2(20),
+FORMACAO VARCHAR2(20), --Atributo usado para a generalizacao 
+NOME_ESTUDIO VARCHAR2(20) NOT NULL, --NOME_ESTUDIO definido como NOT NULL
+DATA_HORA_INICIO DATE,
+CHECK(UPPER(FORMACAO) IN ('PROGRAMADOR','DESIGNER')), --Checagem da generalizacao para garantir as entradas Programador e Designer
+CONSTRAINT PK_DESENVOLVEDOR PRIMARY KEY(CPF),	--CPF definido como chave primária
+CONSTRAINT SK_DESENVOLVEDOR UNIQUE(DATA_HORA_INICIO), --UNIQUE usado para definir DATA_HORA_INICIO como chave secundaria
+CONSTRAINT FK_DESENVOLVEDOR FOREIGN KEY(NOME_ESTUDIO) --NOME_ESTUDIO definido como chave estrangeira
+REFERENCES ESTUDIO(NOME)	--referencia estudio
+ON DELETE CASCADE,
+CONSTRAINT FK_DESENVOLVEDOR_ENTREVISTA FOREIGN KEY(DATA_HORA_INICIO) --DATA_HORA_INICIO definido como chave estrangeira
+REFERENCES ENTREVISTA(DATA_HORA_INICIO)	--referencia entrevista
+ON DELETE SET NULL,
+CONSTRAINT CK_CPF_DEV CHECK(REGEXP_LIKE(CPF, '[0-9]{3}\.[0-9]{3}\.[0-9]{3}\-[0-9]{2}')) --CHECK para garantir o padrão de entrada de CPF
+);
+
+CREATE TABLE PROGRAMADOR(	--Criar tabela Programador
+CPF CHAR(14),
+PROFICIENCIA VARCHAR2(20),
+CONSTRAINT PK_PROGRAMADOR PRIMARY KEY(CPF),	--CPF definido como chave primária
+CONSTRAINT FK_PROGRAMADOR FOREIGN KEY(CPF)	--CPF definido como chave estrangeira
+REFERENCES DESENVOLVEDOR(CPF) 			--referencia desenvolvedor
+ON DELETE CASCADE
+);
+
+CREATE TABLE LINGUAGEM_PROGRAMACAO( --Criar tabela Linguagem_Programacao
+CPF CHAR(14),
+LINGUAGEM VARCHAR2(20),
+CONSTRAINT PK_PROGRAMADOR_LING PRIMARY KEY(CPF, LINGUAGEM), --CPF, LINGUAGEM definidos como chave primária
+CONSTRAINT FK_PROGRAMADOR_LING FOREIGN KEY(CPF)	            --CPF definido como chave estrangeira
+REFERENCES PROGRAMADOR(CPF)				    --referencia programador
+ON DELETE CASCADE
+);
+
+CREATE TABLE DESIGNER( --Cria tabela designer
+CPF CHAR(14),
+FUNCAO VARCHAR2(20),
+CONSTRAINT PK_DESIGNER PRIMARY KEY(CPF), --CPF definido como chave primária
+CONSTRAINT FK_DESIGNER FOREIGN KEY(CPF)  --CPF definido como chave estrangeira
+REFERENCES DESENVOLVEDOR(CPF)		 --referenciando desenvolvedor
+ON DELETE CASCADE
+);
+
+CREATE TABLE SOFTWARE_DESIGNER(	--Criar tabela Software_designer
+CPF CHAR(14),
+SOFTWARE_AFILIADO VARCHAR2(20),
+CONSTRAINT PK_SOFT_DESIGNER PRIMARY KEY(CPF, SOFTWARE_AFILIADO), --CPF e SOFTWARE_AFILIADO definidos como chave primária
+CONSTRAINT FK_SOFT_DESIGNER FOREIGN KEY(CPF)			 --CPF definido como chave estrangeira
+REFERENCES DESIGNER(CPF)					 --referencia designer
+ON DELETE CASCADE
+);
+
+CREATE TABLE ASSISTE_ENTREVISTA(	--Crirar tabela Assiste_Entrevista
+NUM_CRACHA INT,
+DATA_HORA_INICIO DATE,
+CONSTRAINT PK_ASSISTE_ENTREVISTA PRIMARY KEY(NUM_CRACHA, DATA_HORA_INICIO),	--NUM_CRACHA e DATA_HORA_INICIO definido como chave primária
+CONSTRAINT FK_ASSISTE_ENTREVISTA_CRACHA FOREIGN KEY(NUM_CRACHA)			--NUM_CRACHA definido como chave estrangeira
+REFERENCES PUBLICO(NUM_CRACHA)							--referenciando publico
+ON DELETE CASCADE,
+CONSTRAINT FK_ASSISTE_ENTREVISTA_INICIO FOREIGN KEY(DATA_HORA_INICIO)	--DATA_HORA_INICIO definido como hcave estrangeira
+REFERENCES ENTREVISTA(DATA_HORA_INICIO)					--referenciando entrevista
+ON DELETE CASCADE
+);
+
+CREATE TABLE TEMA_ENTREVISTA( --Criacao tabela Tema_Entrevista
+DATA_HORA_INICIO DATE,
+TEMA VARCHAR2(20),
+CONSTRAINT PK_TEMA PRIMARY KEY(DATA_HORA_INICIO, TEMA), --DATA_HORA_INICIO e TEMA definidos como chave primária
+CONSTRAINT FK_TEMA FOREIGN KEY(DATA_HORA_INICIO)	--DATA_HORA_INICIO definido como hcave estrangeira 
+REFERENCES ENTREVISTA(DATA_HORA_INICIO)			--referenciando entrevista
+ON DELETE CASCADE
+);
